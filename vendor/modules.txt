@@ -1,0 +1,88 @@
+# github.com/apparentlymart/terraform-sdk v0.0.0-20190316235715-41c923c09cb1
+github.com/apparentlymart/terraform-sdk
+github.com/apparentlymart/terraform-sdk/internal/dynfunc
+github.com/apparentlymart/terraform-sdk/internal/sdkdiags
+github.com/apparentlymart/terraform-sdk/internal/tfplugin5
+# github.com/golang/protobuf v1.2.0
+github.com/golang/protobuf/proto
+github.com/golang/protobuf/ptypes
+github.com/golang/protobuf/ptypes/any
+github.com/golang/protobuf/ptypes/duration
+github.com/golang/protobuf/ptypes/timestamp
+# github.com/hashicorp/go-hclog v0.0.0-20180709165350-ff2cf002a8dd
+github.com/hashicorp/go-hclog
+# github.com/hashicorp/go-plugin v0.0.0-20190220160451-3f118e8ee104
+github.com/hashicorp/go-plugin
+github.com/hashicorp/go-plugin/internal/plugin
+# github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
+github.com/hashicorp/yamux
+# github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77
+github.com/mitchellh/go-testing-interface
+# github.com/oklog/run v1.0.0
+github.com/oklog/run
+# github.com/vmihailenco/msgpack v3.3.3+incompatible
+github.com/vmihailenco/msgpack
+github.com/vmihailenco/msgpack/codes
+# github.com/zclconf/go-cty v0.0.0-20190201220620-4ca19710f056
+github.com/zclconf/go-cty/cty
+github.com/zclconf/go-cty/cty/convert
+github.com/zclconf/go-cty/cty/gocty
+github.com/zclconf/go-cty/cty/json
+github.com/zclconf/go-cty/cty/msgpack
+github.com/zclconf/go-cty/cty/set
+# golang.org/x/net v0.0.0-20180826012351-8a410e7b638d
+golang.org/x/net/context
+golang.org/x/net/http2
+golang.org/x/net/trace
+golang.org/x/net/http/httpguts
+golang.org/x/net/http2/hpack
+golang.org/x/net/idna
+golang.org/x/net/internal/timeseries
+# golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a
+golang.org/x/sys/unix
+# golang.org/x/text v0.3.0
+golang.org/x/text/unicode/norm
+golang.org/x/text/transform
+golang.org/x/text/secure/bidirule
+golang.org/x/text/unicode/bidi
+# google.golang.org/appengine v1.1.0
+google.golang.org/appengine/datastore
+google.golang.org/appengine
+google.golang.org/appengine/internal
+google.golang.org/appengine/internal/datastore
+google.golang.org/appengine/internal/app_identity
+google.golang.org/appengine/internal/modules
+google.golang.org/appengine/internal/base
+google.golang.org/appengine/internal/log
+google.golang.org/appengine/internal/remote_api
+# google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8
+google.golang.org/genproto/googleapis/rpc/status
+# google.golang.org/grpc v1.14.0
+google.golang.org/grpc
+google.golang.org/grpc/codes
+google.golang.org/grpc/credentials
+google.golang.org/grpc/health
+google.golang.org/grpc/health/grpc_health_v1
+google.golang.org/grpc/balancer
+google.golang.org/grpc/balancer/roundrobin
+google.golang.org/grpc/connectivity
+google.golang.org/grpc/encoding
+google.golang.org/grpc/encoding/proto
+google.golang.org/grpc/grpclog
+google.golang.org/grpc/internal
+google.golang.org/grpc/internal/backoff
+google.golang.org/grpc/internal/channelz
+google.golang.org/grpc/internal/envconfig
+google.golang.org/grpc/internal/grpcrand
+google.golang.org/grpc/internal/transport
+google.golang.org/grpc/keepalive
+google.golang.org/grpc/metadata
+google.golang.org/grpc/naming
+google.golang.org/grpc/peer
+google.golang.org/grpc/resolver
+google.golang.org/grpc/resolver/dns
+google.golang.org/grpc/resolver/passthrough
+google.golang.org/grpc/stats
+google.golang.org/grpc/status
+google.golang.org/grpc/tap
+google.golang.org/grpc/balancer/base
