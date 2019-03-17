@@ -96,3 +96,8 @@ first run) and re-running the assertion checks.
 
 Once the apply run completes successfully, you can clean up the temporary test
 infrastructure using `terraform destroy` as normal.
+
+## Requirements
+
+This provider requires Terraform v0.12 or later. It is not compatible with
+Terraform v0.10 or v0.11.
