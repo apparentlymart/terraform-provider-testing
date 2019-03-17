@@ -1,6 +1,10 @@
 package testing
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -8,7 +12,92 @@ import (
 // and uses the type conversion functions where necessary to indicate exactly
 // what type it is given, so that equality test failures can be quickly
 // understood.
-func formatValue(v cty.Value) string {
-	// FIXME: Write a user-friendly implementation of this
-	return v.GoString()
+func formatValue(v cty.Value, indent int) string {
+	if !v.IsKnown() {
+		// This should never happen in practice because values should always
+		// be known before we start asserting on them, but we'll deal with this
+		// here anyway for robustness.
+		return "(unknown)"
+	}
+	if v.IsNull() {
+		return "null"
+	}
+
+	ty := v.Type()
+	switch {
+	case ty.IsPrimitiveType():
+		switch ty {
+		case cty.String:
+			// FIXME: If it's a multi-line string, better to render it using
+			// HEREDOC-style syntax.
+			return strconv.Quote(v.AsString())
+		case cty.Number:
+			bf := v.AsBigFloat()
+			return bf.Text('g', -1)
+		case cty.Bool:
+			if v.True() {
+				return "true"
+			} else {
+				return "false"
+			}
+		}
+	case ty.IsObjectType():
+		return formatMappingValue(v, indent)
+	case ty.IsTupleType():
+		return formatSequenceValue(v, indent)
+	case ty.IsListType():
+		return fmt.Sprintf("tolist(%s)", formatSequenceValue(v, indent))
+	case ty.IsSetType():
+		return fmt.Sprintf("toset(%s)", formatSequenceValue(v, indent))
+	case ty.IsMapType():
+		return fmt.Sprintf("tomap(%s)", formatMappingValue(v, indent))
+	}
+
+	// Should never get here because there are no other types
+	return fmt.Sprintf("%#v", v)
+}
+
+func formatMappingValue(v cty.Value, indent int) string {
+	var buf strings.Builder
+	count := 0
+	buf.WriteByte('{')
+	indent += 2
+	for it := v.ElementIterator(); it.Next(); {
+		count++
+		k, v := it.Element()
+		buf.WriteByte('\n')
+		buf.WriteString(strings.Repeat(" ", indent))
+		buf.WriteString(formatValue(k, indent))
+		buf.WriteString(" = ")
+		buf.WriteString(formatValue(v, indent))
+	}
+	indent -= 2
+	if count > 0 {
+		buf.WriteByte('\n')
+		buf.WriteString(strings.Repeat(" ", indent))
+	}
+	buf.WriteByte('}')
+	return buf.String()
+}
+
+func formatSequenceValue(v cty.Value, indent int) string {
+	var buf strings.Builder
+	count := 0
+	buf.WriteByte('[')
+	indent += 2
+	for it := v.ElementIterator(); it.Next(); {
+		count++
+		_, v := it.Element()
+		buf.WriteByte('\n')
+		buf.WriteString(strings.Repeat(" ", indent))
+		buf.WriteString(formatValue(v, indent))
+		buf.WriteByte(',')
+	}
+	indent -= 2
+	if count > 0 {
+		buf.WriteByte('\n')
+		buf.WriteString(strings.Repeat(" ", indent))
+	}
+	buf.WriteByte(']')
+	return buf.String()
 }

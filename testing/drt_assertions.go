@@ -140,7 +140,12 @@ func assertionsDataResourceType() tfsdk.DataResourceType {
 
 				var msg string
 				if statement != "" {
-					msg = fmt.Sprintf("Assertion failed: %s.\n  Want: %s\n  Got:  %s", statement, eq.Want, eq.Got)
+					msg = fmt.Sprintf(
+						"Assertion failed: %s.\n  Want: %s\n  Got:  %s",
+						statement,
+						formatValue(eq.Want, 2),
+						formatValue(eq.Got, 2),
+					)
 				} else {
 					msg = fmt.Sprintf("Assertion failed.\n  Want: %s\n  Got:  %s", eq.Want, eq.Got)
 				}
