@@ -6,13 +6,14 @@ import (
 
 	tfsdk "github.com/apparentlymart/terraform-sdk"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 type assertionsDRT struct {
 	Subject *string `cty:"subject"`
 
-	Check map[string]*assertionsDRTCheck `cty:"check"`
-	Equal map[string]*assertionsDRTEqual `cty:"equal"`
+	Checks cty.Value `cty:"check"`
+	Equals cty.Value `cty:"equal"`
 }
 
 type assertionsDRTEqual struct {
@@ -67,7 +68,20 @@ func assertionsDataResourceType() tfsdk.DataResourceType {
 				subject = *obj.Subject
 			}
 
-			for k, chk := range obj.Check {
+			for it := obj.Checks.ElementIterator(); it.Next(); {
+				k, v := it.Element()
+				var chk assertionsDRTCheck
+				err := gocty.FromCtyValue(v, &chk)
+				if err != nil {
+					// Should never happen; indicates that our struct is wrong.
+					diags = diags.Append(tfsdk.Diagnostic{
+						Severity: tfsdk.Error,
+						Summary:  "Bug in 'testing' provider",
+						Detail:   fmt.Sprintf("The provider encountered a problem while decoding the check %q block: %s.\n\nThis is a bug in the provider; please report it in the provider's issue tracker.", k.AsString(), err),
+					})
+					continue
+				}
+
 				if chk.Pass {
 					continue
 				}
@@ -83,18 +97,33 @@ func assertionsDataResourceType() tfsdk.DataResourceType {
 
 				msg := "Assertion failed"
 				if statement != "" {
-					msg = fmt.Sprintf("%s: %s", msg, statement)
+					msg = fmt.Sprintf("%s: %s.", msg, statement)
+				} else {
+					msg = msg + "."
 				}
 
 				diags = diags.Append(tfsdk.Diagnostic{
 					Severity: tfsdk.Error,
 					Summary:  "Test failure",
 					Detail:   msg,
-					Path:     cty.Path(nil).GetAttr("check").Index(cty.StringVal(k)).GetAttr("expect"),
+					Path:     cty.Path(nil).GetAttr("check").Index(k).GetAttr("expect"),
 				})
 			}
 
-			for k, eq := range obj.Equal {
+			for it := obj.Equals.ElementIterator(); it.Next(); {
+				k, v := it.Element()
+				var eq assertionsDRTEqual
+				err := gocty.FromCtyValue(v, &eq)
+				if err != nil {
+					// Should never happen; indicates that our struct is wrong.
+					diags = diags.Append(tfsdk.Diagnostic{
+						Severity: tfsdk.Error,
+						Summary:  "Bug in 'testing' provider",
+						Detail:   fmt.Sprintf("The provider encountered a problem while decoding the equal %q block: %s.\n\nThis is a bug in the provider; please report it in the provider's issue tracker.", k.AsString(), err),
+					})
+					continue
+				}
+
 				if eq.Got.RawEquals(eq.Want) {
 					// Assertion passes!
 					continue
@@ -111,16 +140,16 @@ func assertionsDataResourceType() tfsdk.DataResourceType {
 
 				var msg string
 				if statement != "" {
-					msg = fmt.Sprintf("Assertion failed: %s\n    Want: %s\n    Got:  %s", statement, eq.Want, eq.Got)
+					msg = fmt.Sprintf("Assertion failed: %s.\n  Want: %s\n  Got:  %s", statement, eq.Want, eq.Got)
 				} else {
-					msg = fmt.Sprintf("Assertion failed\n    Want: %s\n    Got:  %s", eq.Want, eq.Got)
+					msg = fmt.Sprintf("Assertion failed.\n  Want: %s\n  Got:  %s", eq.Want, eq.Got)
 				}
 
 				diags = diags.Append(tfsdk.Diagnostic{
 					Severity: tfsdk.Error,
 					Summary:  "Test failure",
 					Detail:   msg,
-					Path:     cty.Path(nil).GetAttr("equal").Index(cty.StringVal(k)).GetAttr("got"),
+					Path:     cty.Path(nil).GetAttr("equal").Index(k).GetAttr("got"),
 				})
 			}
 

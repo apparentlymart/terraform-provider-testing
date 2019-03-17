@@ -23,10 +23,10 @@ github.com/oklog/run
 # github.com/vmihailenco/msgpack v3.3.3+incompatible
 github.com/vmihailenco/msgpack
 github.com/vmihailenco/msgpack/codes
-# github.com/zclconf/go-cty v0.0.0-20190201220620-4ca19710f056
+# github.com/zclconf/go-cty v0.0.0-20190317012026-9463876af40c
 github.com/zclconf/go-cty/cty
-github.com/zclconf/go-cty/cty/convert
 github.com/zclconf/go-cty/cty/gocty
+github.com/zclconf/go-cty/cty/convert
 github.com/zclconf/go-cty/cty/json
 github.com/zclconf/go-cty/cty/msgpack
 github.com/zclconf/go-cty/cty/set
