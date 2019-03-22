@@ -1,3 +1,5 @@
+github.com/apparentlymart/go-test-anything v0.0.0-20190322145904-49878ce2b2be h1:L+c5U/S9cGWv2iWuPL3avpdWW6lZ1m0xZzHQPKHvDtc=
+github.com/apparentlymart/go-test-anything v0.0.0-20190322145904-49878ce2b2be/go.mod h1:4vDVpChQs6gvNdgeySAVQx2U2iEl881we2il3+Lx18k=
 github.com/apparentlymart/go-textseg v1.0.0/go.mod h1:z96Txxhf3xSFMPmb5X/1W05FF/Nj9VFpLOpjS5yuumk=
 github.com/apparentlymart/terraform-sdk v0.0.0-20190316235715-41c923c09cb1 h1:H8XJxDi3Wv1MWEoVWEm1R1anGDtXhUsaDa5DxFqPh/c=
 github.com/apparentlymart/terraform-sdk v0.0.0-20190316235715-41c923c09cb1/go.mod h1:aa7ZhCPM01PTbeA/XabZtGub3Sphcm1icGvQgjM2XeM=

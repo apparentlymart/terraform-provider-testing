@@ -101,3 +101,32 @@ infrastructure using `terraform destroy` as normal.
 
 This provider requires Terraform v0.12 or later. It is not compatible with
 Terraform v0.10 or v0.11.
+
+## External Test Programs
+
+Lots of simple test assertions can be implemented by combining existing Terraform
+provider data sources with the `testing_assertions` data source as above.
+Sometimes though, it's more convenient to express you test cases in an
+imperative program that might have some side-effects of its own.
+
+To support this, the provider also offers a `testing_tap` data source which
+runs an external program and interprets its output as the line-oriented
+[Test Anything Protocol](https://testanything.org/). This protocol is easy
+to generate from any language that can write to stdout -- including shell scripts!
+-- and provides a lightweight interface between the test program and this
+provider.
+
+```hcl
+module "tap_hello" {
+  source = "../"
+
+  input = "hello"
+}
+
+data "testing_tap" "hello" {
+  program = ["bash", "${path.module}/test.sh", module.tap_hello.result]
+}
+```
+
+If the test program reports any test failures (using "not ok" reports) then
+the provider will report these as error diagnostics.

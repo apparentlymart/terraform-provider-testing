@@ -17,6 +17,7 @@ func Provider() *tfsdk.Provider {
 
 		DataResourceTypes: map[string]tfsdk.DataResourceType{
 			"testing_assertions": assertionsDataResourceType(),
+			"testing_tap":        tapDataResourceType(),
 		},
 	}
 }
