@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -13,7 +14,8 @@ import (
 )
 
 type tapDRT struct {
-	Program []string `cty:"program"`
+	Program     []string          `cty:"program"`
+	Environment map[string]string `cty:"environment"`
 }
 
 func tapDataResourceType() tfsdk.DataResourceType {
@@ -33,6 +35,10 @@ func tapDataResourceType() tfsdk.DataResourceType {
 						return diags
 					},
 				},
+				"environment": {
+					Type:     cty.Map(cty.String),
+					Optional: true,
+				},
 			},
 		},
 
@@ -43,6 +49,12 @@ func tapDataResourceType() tfsdk.DataResourceType {
 			var outBuf, errBuf bytes.Buffer
 			cmd.Stdout = &outBuf
 			cmd.Stderr = &errBuf
+			for _, e := range os.Environ() {
+				cmd.Env = append(cmd.Env, e)
+			}
+			for k, v := range obj.Environment {
+				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+			}
 
 			err := cmd.Run()
 
@@ -83,7 +95,7 @@ func tapDataResourceType() tfsdk.DataResourceType {
 					testName = fmt.Sprintf("anonymous test #%d", test.Num)
 				}
 				switch {
-				case test.Result == tap.Fail || !test.Todo:
+				case test.Result == tap.Fail && !test.Todo:
 					diags = diags.Append(tfsdk.Diagnostic{
 						Severity: tfsdk.Error,
 						Summary:  "Test failure",
