@@ -94,18 +94,27 @@ func tapDataResourceType() tfsdk.DataResourceType {
 				if testName == "" {
 					testName = fmt.Sprintf("anonymous test #%d", test.Num)
 				}
+				testDiagMsgs := ""
+				if len(test.Diagnostics) > 0 {
+					var buf strings.Builder
+					buf.WriteString("\n\nDiagnostic output from test:\n")
+					for _, diagMsg := range test.Diagnostics {
+						fmt.Fprintf(&buf, "  %s\n", diagMsg)
+					}
+					testDiagMsgs = buf.String()
+				}
 				switch {
 				case test.Result == tap.Fail && !test.Todo:
 					diags = diags.Append(tfsdk.Diagnostic{
 						Severity: tfsdk.Error,
 						Summary:  "Test failure",
-						Detail:   fmt.Sprintf("Test failed: %s.", testName),
+						Detail:   fmt.Sprintf("Test failed: %s.%s", testName, testDiagMsgs),
 					})
 				case test.Result == tap.Pass && test.Todo:
 					diags = diags.Append(tfsdk.Diagnostic{
 						Severity: tfsdk.Warning,
 						Summary:  "Test passed unexpectedly",
-						Detail:   fmt.Sprintf("Bonus test pass: %s.\n\nThis test is marked as a TODO test, but yet it passed. Consider removing the TODO directive from this test.", testName),
+						Detail:   fmt.Sprintf("Bonus test pass: %s.\n\nThis test is marked as a TODO test, but yet it passed. Consider removing the TODO directive from this test.%s", testName, testDiagMsgs),
 					})
 				}
 			}
