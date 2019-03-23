@@ -2,6 +2,7 @@ package tap
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"regexp"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 
 var planPattern = regexp.MustCompile(`^(\d+)\.\.(\d+)$`)
 var reportPattern = regexp.MustCompile(`^(?i)(ok|not ok|Bail out!)(?:\s+((\d*)\s*(.*?)(?:\s+# (todo|skip|)\S*\s*(.*))?))?$`)
+var diagnosticMarker = []byte{'#'}
 
 // Read is a convenience wrapper around constructing a Reader, reading all of
 // its results, and constructing a report. A caller that doesn't need streaming
@@ -28,6 +30,7 @@ type Reader struct {
 	plan    *Plan
 	nextNum int
 	results map[int]*Report
+	diags   []string
 	bail    *BailOut
 	err     error
 }
@@ -67,9 +70,11 @@ func (r *Reader) Read() *Report {
 				r.nextNum = num + 1
 
 				report := &Report{
-					Num:  num,
-					Name: string(match[4]),
+					Num:         num,
+					Name:        string(match[4]),
+					Diagnostics: r.diags,
 				}
+				r.diags = nil
 
 				report.Result = Fail
 				if prefix == "ok" {
@@ -89,6 +94,7 @@ func (r *Reader) Read() *Report {
 			case "bail out!":
 				err := BailOut(match[2])
 				r.err = err
+				r.diags = nil
 				return nil
 			}
 		} else if match := planPattern.FindSubmatch(line); match != nil {
@@ -98,6 +104,13 @@ func (r *Reader) Read() *Report {
 				Min: int(min64),
 				Max: int(max64),
 			}
+			r.diags = nil
+		} else if bytes.HasPrefix(line, diagnosticMarker) {
+			diag := line[1:] // trim off marker
+			if len(diag) > 0 && diag[0] == ' ' {
+				diag = diag[1:] // also trim off one leading space
+			}
+			r.diags = append(r.diags, string(diag))
 		}
 	}
 	if len(r.results) == 0 {

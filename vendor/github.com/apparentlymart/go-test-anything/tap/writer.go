@@ -76,6 +76,10 @@ func (w *Writer) Report(report *Report) error {
 		num = w.nextNumber
 	}
 
+	for _, diag := range report.Diagnostics {
+		fmt.Fprintf(&buf, "# %s\n", diag)
+	}
+
 	switch report.Result {
 	case Pass, Skip:
 		fmt.Fprintf(&buf, "ok %d", num)

@@ -82,6 +82,11 @@ type Report struct {
 	// If Todo is set then TodoReason might contain a reason string for the
 	// TODO, if provided by the test program.
 	TodoReason string
+
+	// Diagnostics captures any consecutive diagnostic lines that appeared
+	// immediately before this test report in the test program output. These
+	// will have had their leading "# " markers removed already.
+	Diagnostics []string
 }
 
 // Result describes the passing status for a test.
