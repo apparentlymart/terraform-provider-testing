@@ -1,10 +1,11 @@
 # github.com/apparentlymart/go-test-anything v0.0.0-20190323155717-3de3617c9489
 github.com/apparentlymart/go-test-anything/tap
-# github.com/apparentlymart/terraform-sdk v0.0.0-20190316235715-41c923c09cb1
+# github.com/apparentlymart/terraform-sdk v0.0.0-20190324213639-3b0943137b74
 github.com/apparentlymart/terraform-sdk
 github.com/apparentlymart/terraform-sdk/internal/dynfunc
 github.com/apparentlymart/terraform-sdk/internal/sdkdiags
 github.com/apparentlymart/terraform-sdk/internal/tfplugin5
+github.com/apparentlymart/terraform-sdk/tftest
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
