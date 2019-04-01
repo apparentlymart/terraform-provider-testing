@@ -5,12 +5,13 @@ import (
 	"sort"
 
 	"github.com/apparentlymart/terraform-sdk/internal/tfplugin5"
+	"github.com/apparentlymart/terraform-sdk/tfschema"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 )
 
-func convertSchemaBlockToTFPlugin5(src *SchemaBlockType) *tfplugin5.Schema_Block {
+func convertSchemaBlockToTFPlugin5(src *tfschema.BlockType) *tfplugin5.Schema_Block {
 	ret := &tfplugin5.Schema_Block{}
 	if src == nil {
 		// Weird, but we'll allow it.
@@ -38,13 +39,13 @@ func convertSchemaBlockToTFPlugin5(src *SchemaBlockType) *tfplugin5.Schema_Block
 		nested := convertSchemaBlockToTFPlugin5(&blockS.Content)
 		var nesting tfplugin5.Schema_NestedBlock_NestingMode
 		switch blockS.Nesting {
-		case SchemaNestingSingle:
+		case tfschema.NestingSingle:
 			nesting = tfplugin5.Schema_NestedBlock_SINGLE
-		case SchemaNestingList:
+		case tfschema.NestingList:
 			nesting = tfplugin5.Schema_NestedBlock_LIST
-		case SchemaNestingMap:
+		case tfschema.NestingMap:
 			nesting = tfplugin5.Schema_NestedBlock_MAP
-		case SchemaNestingSet:
+		case tfschema.NestingSet:
 			nesting = tfplugin5.Schema_NestedBlock_SET
 		default:
 			// Should never happen because the above is exhaustive.
@@ -66,7 +67,7 @@ func convertSchemaBlockToTFPlugin5(src *SchemaBlockType) *tfplugin5.Schema_Block
 	return ret
 }
 
-func decodeTFPlugin5DynamicValue(src *tfplugin5.DynamicValue, schema *SchemaBlockType) (cty.Value, Diagnostics) {
+func decodeTFPlugin5DynamicValue(src *tfplugin5.DynamicValue, schema *tfschema.BlockType) (cty.Value, Diagnostics) {
 	switch {
 	case len(src.Json) > 0:
 		return decodeJSONObject(src.Json, schema)
@@ -75,14 +76,14 @@ func decodeTFPlugin5DynamicValue(src *tfplugin5.DynamicValue, schema *SchemaBloc
 	}
 }
 
-func encodeTFPlugin5DynamicValue(src cty.Value, schema *SchemaBlockType) *tfplugin5.DynamicValue {
+func encodeTFPlugin5DynamicValue(src cty.Value, schema *tfschema.BlockType) *tfplugin5.DynamicValue {
 	msgpackSrc := encodeMsgpackObject(src, schema)
 	return &tfplugin5.DynamicValue{
 		Msgpack: msgpackSrc,
 	}
 }
 
-func decodeJSONObject(src []byte, schema *SchemaBlockType) (cty.Value, Diagnostics) {
+func decodeJSONObject(src []byte, schema *tfschema.BlockType) (cty.Value, Diagnostics) {
 	var diags Diagnostics
 	wantTy := schema.ImpliedCtyType()
 	ret, err := json.Unmarshal(src, wantTy)
@@ -101,7 +102,7 @@ func decodeJSONObject(src []byte, schema *SchemaBlockType) (cty.Value, Diagnosti
 	return ret, diags
 }
 
-func decodeMsgpackObject(src []byte, schema *SchemaBlockType) (cty.Value, Diagnostics) {
+func decodeMsgpackObject(src []byte, schema *tfschema.BlockType) (cty.Value, Diagnostics) {
 	var diags Diagnostics
 	wantTy := schema.ImpliedCtyType()
 	ret, err := msgpack.Unmarshal(src, wantTy)
@@ -120,7 +121,7 @@ func decodeMsgpackObject(src []byte, schema *SchemaBlockType) (cty.Value, Diagno
 	return ret, diags
 }
 
-func encodeMsgpackObject(src cty.Value, schema *SchemaBlockType) []byte {
+func encodeMsgpackObject(src cty.Value, schema *tfschema.BlockType) []byte {
 	wantTy := schema.ImpliedCtyType()
 	ret, err := msgpack.Marshal(src, wantTy)
 	if err != nil {

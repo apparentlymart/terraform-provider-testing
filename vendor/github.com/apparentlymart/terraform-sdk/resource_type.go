@@ -5,24 +5,30 @@ import (
 	"fmt"
 
 	"github.com/apparentlymart/terraform-sdk/internal/dynfunc"
+	"github.com/apparentlymart/terraform-sdk/tfobj"
+	"github.com/apparentlymart/terraform-sdk/tfschema"
 	"github.com/zclconf/go-cty/cty"
 )
 
-// ResourceType is the type that provider packages should instantiate to
-// implement a specific resource type.
+// ResourceTypeDef is the type that provider packages should instantiate to
+// describe the implementation of a specific resource type.
 //
-// Pointers to instances of this type can be passed to the functions
-// NewManagedResourceType and NewDataResourceType to provide managed and
-// data resource type implementations respectively.
-type ResourceType struct {
-	ConfigSchema  *SchemaBlockType
+// "Def" in the type name is short for "Definition"; a ResourceTypeDef is not
+// actually itself a resource type, but pointers to instances of this type can
+// be passed to the functions NewManagedResourceType and NewDataResourceType to
+// provide managed and data resource type implementations respectively. Each
+// specific resource type kind has its own constraints on what can and must
+// be set in a ResourceTypeDef for that kind; see the resource type constructor
+// functions' documentation for more information.
+type ResourceTypeDef struct {
+	ConfigSchema  *tfschema.BlockType
 	SchemaVersion int64 // Only used for managed resource types; leave as zero otherwise
 
 	// CreateFn is a function called when creating an instance of your resource
 	// type for the first time. It must be a function compatible with the
 	// following signature:
 	//
-	//     func (ctx context.Context, planned cty.Value) (new cty.Value, diags tfsdk.Diagnostics)
+	//     func (ctx context.Context, client interface{}, planned tfobj.ObjectReader) (new cty.Value, diags tfsdk.Diagnostics)
 	//
 	// If the create was not completely successful, you may still return a
 	// partially-created object alongside error diagnostics to retain the parts
@@ -33,7 +39,7 @@ type ResourceType struct {
 	// instance of your resource type. It must be a function compatible with the
 	// following signature:
 	//
-	//     func (ctx context.Context, prior cty.Value) (new cty.Value, diags tfsdk.Diagnostics)
+	//     func (ctx context.Context, client interface{}, planned tfobj.ObjectReader) (new cty.Value, diags tfsdk.Diagnostics)
 	//
 	// If the given object appears to have been deleted upstream, return a null
 	// value to indicate that. The object will then be removed from the Terraform
@@ -44,7 +50,7 @@ type ResourceType struct {
 	// instance of your resource type. It must be a function compatible with the
 	// following signature:
 	//
-	//     func (ctx context.Context, prior cty.Value, planned cty.Value) (new cty.Value, diags tfsdk.Diagnostics)
+	//     func (ctx context.Context, client interface{}, prior tfobj.ObjectReader, planned tfobj.PlanReader) (new cty.Value, diags tfsdk.Diagnostics)
 	//
 	// If the update is not completely successful, you may still return a
 	// partially-updated object alongside error diagnostics to retain the
@@ -56,12 +62,23 @@ type ResourceType struct {
 	// DeleteFn is a function called to delete an instance of your resource type.
 	// It must be a function compatible with the following signature:
 	//
-	//     func (ctx context.Context, prior cty.Value) tfsdk.Diagnostics
+	//     func (ctx context.Context, client interface{}, prior tfobj.ObjectReader) tfsdk.Diagnostics
 	//
 	// If error diagnostics are returned, the SDK will assume that the delete
 	// failed and that the object still exists. If it actually was deleted
 	// before the failure, this should be detected on the next Read call.
 	DeleteFn interface{}
+
+	// PlanFn can be set for managed resource types in order to make adjustments
+	// to a planned change for an instance. It must be a function compatible
+	// with the following signature:
+	//
+	//     func (ctx context.Context, client interface{}, plan tfobj.PlanBuilder) (planned cty.Value, diags tfsdk.Diagnostics)
+	//
+	// If possible, the provider should also perform validation of the planned
+	// change and return errors or warnings early, rather than waiting until
+	// the apply step.
+	PlanFn interface{}
 }
 
 // NewManagedResourceType prepares a ManagedResourceType implementation using
@@ -69,14 +86,14 @@ type ResourceType struct {
 //
 // This function is intended to be called during startup with a valid
 // ResourceType, so it will panic if the given ResourceType is not valid.
-func NewManagedResourceType(def *ResourceType) ManagedResourceType {
+func NewManagedResourceType(def *ResourceTypeDef) ManagedResourceType {
 	if def == nil {
 		panic("NewManagedResourceType called with nil definition")
 	}
 
 	schema := def.ConfigSchema
 	if schema == nil {
-		schema = &SchemaBlockType{}
+		schema = &tfschema.BlockType{}
 	}
 
 	readFn := def.ReadFn
@@ -94,6 +111,7 @@ func NewManagedResourceType(def *ResourceType) ManagedResourceType {
 		readFn:   readFn,
 		updateFn: def.UpdateFn,
 		deleteFn: def.DeleteFn,
+		planFn:   def.PlanFn,
 	}
 }
 
@@ -102,14 +120,14 @@ func NewManagedResourceType(def *ResourceType) ManagedResourceType {
 //
 // This function is intended to be called during startup with a valid
 // ResourceType, so it will panic if the given ResourceType is not valid.
-func NewDataResourceType(def *ResourceType) DataResourceType {
+func NewDataResourceType(def *ResourceTypeDef) DataResourceType {
 	if def == nil {
 		panic("NewDataResourceType called with nil definition")
 	}
 
 	schema := def.ConfigSchema
 	if schema == nil {
-		schema = &SchemaBlockType{}
+		schema = &tfschema.BlockType{}
 	}
 	if def.SchemaVersion != 0 {
 		panic("NewDataResourceType requires def.SchemaVersion == 0")
@@ -130,18 +148,19 @@ func NewDataResourceType(def *ResourceType) DataResourceType {
 }
 
 type managedResourceType struct {
-	configSchema  *SchemaBlockType
+	configSchema  *tfschema.BlockType
 	schemaVersion int64
 
 	createFn, readFn, updateFn, deleteFn interface{}
+	planFn                               interface{}
 }
 
-func (rt managedResourceType) getSchema() (schema *SchemaBlockType, version int64) {
+func (rt managedResourceType) getSchema() (schema *tfschema.BlockType, version int64) {
 	return rt.configSchema, rt.schemaVersion
 }
 
 func (rt managedResourceType) validate(obj cty.Value) Diagnostics {
-	return rt.configSchema.Validate(obj)
+	return ValidateBlockObject(rt.configSchema, obj)
 }
 
 func (rt managedResourceType) upgradeState(oldJSON []byte, oldVersion int) (cty.Value, Diagnostics) {
@@ -152,7 +171,8 @@ func (rt managedResourceType) refresh(ctx context.Context, client interface{}, c
 	var diags Diagnostics
 	wantTy := rt.configSchema.ImpliedCtyType()
 
-	fn, err := dynfunc.WrapFunctionWithReturnValueCty(rt.readFn, wantTy, ctx, client, current)
+	currentReader := tfobj.NewObjectReader(rt.configSchema, current)
+	fn, err := dynfunc.WrapFunctionWithReturnValueCty(rt.readFn, wantTy, ctx, client, currentReader)
 	if err != nil {
 		diags = diags.Append(Diagnostic{
 			Severity: Error,
@@ -180,16 +200,43 @@ func (rt managedResourceType) refresh(ctx context.Context, client interface{}, c
 
 func (rt managedResourceType) planChange(ctx context.Context, client interface{}, prior, config, proposed cty.Value) (cty.Value, Diagnostics) {
 	var diags Diagnostics
+	wantTy := rt.configSchema.ImpliedCtyType()
 
 	// Terraform Core has already done a lot of the work in merging prior with
 	// config to produce "proposed". Our main job here is inserting any additional
 	// default values called for in the provider schema.
 	planned := rt.configSchema.ApplyDefaults(proposed)
 
-	// TODO: We should also give the provider code an opportunity to make
-	// further changes to the "Computed" parts of the planned value so it
-	// can use its own logic, or possibly remote API calls, to produce the
-	// most accurate plan.
+	if !planned.RawEquals(prior) {
+		// If there are already changes planned then the provider code gets
+		// an opportunity to refine the changeset in case there are any
+		// side-effects of the configuration change that could affect any
+		// pre-existing computed attribute values.
+		planBuilder := tfobj.NewPlanBuilder(rt.configSchema, prior, config, planned)
+		fn, err := dynfunc.WrapFunctionWithReturnValueCty(rt.planFn, wantTy, ctx, client, planBuilder)
+		if err != nil {
+			diags = diags.Append(Diagnostic{
+				Severity: Error,
+				Summary:  "Invalid provider implementation",
+				Detail:   fmt.Sprintf("Invalid PlanFn: %s.\nThis is a bug in the provider that should be reported in its own issue tracker.", err),
+			})
+			return rt.configSchema.Null(), diags
+		}
+
+		var moreDiags Diagnostics
+		planned, moreDiags = fn()
+		diags = diags.Append(moreDiags)
+
+		// We'll make life easier on the provider implementer by normalizing null
+		// and unknown values to the correct type automatically, so they can just
+		// return dynamically-typed nulls and unknowns.
+		switch {
+		case planned.IsNull():
+			planned = cty.NullVal(wantTy)
+		case !planned.IsKnown():
+			planned = cty.UnknownVal(wantTy)
+		}
+	}
 
 	return planned, diags
 }
@@ -226,17 +273,21 @@ func (rt managedResourceType) applyChange(ctx context.Context, client interface{
 	var errMsg string
 	switch {
 	case prior.IsNull():
-		fn, err = dynfunc.WrapFunctionWithReturnValueCty(rt.createFn, wantTy, ctx, client, planned)
+		plannedReader := tfobj.NewObjectReader(rt.configSchema, planned)
+		fn, err = dynfunc.WrapFunctionWithReturnValueCty(rt.createFn, wantTy, ctx, client, plannedReader)
 		if err != nil {
 			errMsg = fmt.Sprintf("Invalid CreateFn: %s.\nThis is a bug in the provider that should be reported in its own issue tracker.", err)
 		}
 	case planned.IsNull():
-		fn, err = dynfunc.WrapFunctionWithReturnValueCty(rt.deleteFn, wantTy, ctx, client, prior)
+		priorReader := tfobj.NewObjectReader(rt.configSchema, prior)
+		fn, err = dynfunc.WrapFunctionWithReturnValueCty(rt.deleteFn, wantTy, ctx, client, priorReader)
 		if err != nil {
 			errMsg = fmt.Sprintf("Invalid DeleteFn: %s.\nThis is a bug in the provider that should be reported in its own issue tracker.", err)
 		}
 	default:
-		fn, err = dynfunc.WrapFunctionWithReturnValueCty(rt.updateFn, wantTy, ctx, client, prior, planned)
+		priorReader := tfobj.NewObjectReader(rt.configSchema, prior)
+		plannedReader := tfobj.NewPlanReader(rt.configSchema, prior, planned)
+		fn, err = dynfunc.WrapFunctionWithReturnValueCty(rt.updateFn, wantTy, ctx, client, priorReader, plannedReader)
 		if err != nil {
 			errMsg = fmt.Sprintf("Invalid UpdateFn: %s.\nThis is a bug in the provider that should be reported in its own issue tracker.", err)
 		}
@@ -271,24 +322,25 @@ func (rt managedResourceType) importState(ctx context.Context, client interface{
 }
 
 type dataResourceType struct {
-	configSchema *SchemaBlockType
+	configSchema *tfschema.BlockType
 
 	readFn interface{}
 }
 
-func (rt dataResourceType) getSchema() *SchemaBlockType {
+func (rt dataResourceType) getSchema() *tfschema.BlockType {
 	return rt.configSchema
 }
 
 func (rt dataResourceType) validate(obj cty.Value) Diagnostics {
-	return rt.configSchema.Validate(obj)
+	return ValidateBlockObject(rt.configSchema, obj)
 }
 
 func (rt dataResourceType) read(ctx context.Context, client interface{}, config cty.Value) (cty.Value, Diagnostics) {
 	var diags Diagnostics
 	wantTy := rt.configSchema.ImpliedCtyType()
 
-	fn, err := dynfunc.WrapFunctionWithReturnValueCty(rt.readFn, wantTy, ctx, client, config)
+	configReader := tfobj.NewObjectReader(rt.configSchema, config)
+	fn, err := dynfunc.WrapFunctionWithReturnValueCty(rt.readFn, wantTy, ctx, client, configReader)
 	if err != nil {
 		diags = diags.Append(Diagnostic{
 			Severity: Error,

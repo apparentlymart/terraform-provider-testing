@@ -10,6 +10,7 @@ import (
 
 	"github.com/apparentlymart/go-test-anything/tap"
 	tfsdk "github.com/apparentlymart/terraform-sdk"
+	"github.com/apparentlymart/terraform-sdk/tfschema"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -19,9 +20,9 @@ type tapDRT struct {
 }
 
 func tapDataResourceType() tfsdk.DataResourceType {
-	return tfsdk.NewDataResourceType(&tfsdk.ResourceType{
-		ConfigSchema: &tfsdk.SchemaBlockType{
-			Attributes: map[string]*tfsdk.SchemaAttribute{
+	return tfsdk.NewDataResourceType(&tfsdk.ResourceTypeDef{
+		ConfigSchema: &tfschema.BlockType{
+			Attributes: map[string]*tfschema.Attribute{
 				"program": {
 					Type:     cty.List(cty.String),
 					Required: true,

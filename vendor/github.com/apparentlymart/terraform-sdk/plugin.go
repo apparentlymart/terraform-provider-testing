@@ -92,7 +92,7 @@ func (s *tfplugin5Server) GetSchema(context.Context, *tfplugin5.GetProviderSchem
 //    	return resp, nil
 //    }
 func (s *tfplugin5Server) requireManagedResourceType(typeName string, diagsPtr *[]*tfplugin5.Diagnostic) ManagedResourceType {
-	rt := s.p.ManagedResourceType(typeName)
+	rt := s.p.managedResourceType(typeName)
 	if rt == nil {
 		var diags Diagnostics
 		diags = diags.Append(Diagnostic{
@@ -115,7 +115,7 @@ func (s *tfplugin5Server) requireManagedResourceType(typeName string, diagsPtr *
 //    	return resp, nil
 //    }
 func (s *tfplugin5Server) requireDataResourceType(typeName string, diagsPtr *[]*tfplugin5.Diagnostic) DataResourceType {
-	rt := s.p.DataResourceType(typeName)
+	rt := s.p.dataResourceType(typeName)
 	if rt == nil {
 		var diags Diagnostics
 		diags = diags.Append(Diagnostic{
@@ -137,7 +137,7 @@ func (s *tfplugin5Server) PrepareProviderConfig(ctx context.Context, req *tfplug
 		return resp, nil
 	}
 
-	preparedVal, diags := s.p.PrepareConfig(proposedVal)
+	preparedVal, diags := s.p.prepareConfig(proposedVal)
 	resp.PreparedConfig = encodeTFPlugin5DynamicValue(preparedVal, s.p.ConfigSchema)
 	resp.Diagnostics = encodeDiagnosticsToTFPlugin5(diags)
 	return resp, nil
@@ -197,7 +197,7 @@ func (s *tfplugin5Server) Configure(ctx context.Context, req *tfplugin5.Configur
 	}
 
 	stoppableCtx := s.stoppableContext(ctx)
-	diags = s.p.Configure(stoppableCtx, configVal)
+	diags = s.p.configure(stoppableCtx, configVal)
 	resp.Diagnostics = encodeDiagnosticsToTFPlugin5(diags)
 	return resp, nil
 }
@@ -218,7 +218,7 @@ func (s *tfplugin5Server) ReadResource(ctx context.Context, req *tfplugin5.ReadR
 	}
 
 	stoppableCtx := s.stoppableContext(ctx)
-	newVal, diags := s.p.ReadResource(stoppableCtx, rt, currentVal)
+	newVal, diags := s.p.readResource(stoppableCtx, rt, currentVal)
 
 	// Safety check
 	wantTy := schema.ImpliedCtyType()
@@ -261,7 +261,7 @@ func (s *tfplugin5Server) PlanResourceChange(ctx context.Context, req *tfplugin5
 	}
 
 	stoppableCtx := s.stoppableContext(ctx)
-	plannedVal, diags := s.p.PlanResourceChange(stoppableCtx, rt, priorVal, configVal, proposedVal)
+	plannedVal, diags := s.p.planResourceChange(stoppableCtx, rt, priorVal, configVal, proposedVal)
 
 	// Safety check
 	wantTy := schema.ImpliedCtyType()
@@ -299,7 +299,7 @@ func (s *tfplugin5Server) ApplyResourceChange(ctx context.Context, req *tfplugin
 	}
 
 	stoppableCtx := s.stoppableContext(ctx)
-	newVal, diags := s.p.ApplyResourceChange(stoppableCtx, rt, priorVal, plannedVal)
+	newVal, diags := s.p.applyResourceChange(stoppableCtx, rt, priorVal, plannedVal)
 
 	// Safety check
 	wantTy := schema.ImpliedCtyType()
@@ -336,7 +336,7 @@ func (s *tfplugin5Server) ReadDataSource(ctx context.Context, req *tfplugin5.Rea
 	}
 
 	stoppableCtx := s.stoppableContext(ctx)
-	newVal, diags := s.p.ReadDataSource(stoppableCtx, rt, currentVal)
+	newVal, diags := s.p.readDataSource(stoppableCtx, rt, currentVal)
 
 	// Safety check
 	wantTy := schema.ImpliedCtyType()

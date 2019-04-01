@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	tfsdk "github.com/apparentlymart/terraform-sdk"
+	"github.com/apparentlymart/terraform-sdk/tfschema"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
@@ -30,16 +31,16 @@ type assertionsDRTCheck struct {
 }
 
 func assertionsDataResourceType() tfsdk.DataResourceType {
-	return tfsdk.NewDataResourceType(&tfsdk.ResourceType{
-		ConfigSchema: &tfsdk.SchemaBlockType{
-			Attributes: map[string]*tfsdk.SchemaAttribute{
+	return tfsdk.NewDataResourceType(&tfsdk.ResourceTypeDef{
+		ConfigSchema: &tfschema.BlockType{
+			Attributes: map[string]*tfschema.Attribute{
 				"subject": {Type: cty.String, Optional: true},
 			},
-			NestedBlockTypes: map[string]*tfsdk.SchemaNestedBlockType{
+			NestedBlockTypes: map[string]*tfschema.NestedBlockType{
 				"check": {
-					Nesting: tfsdk.SchemaNestingMap,
-					Content: tfsdk.SchemaBlockType{
-						Attributes: map[string]*tfsdk.SchemaAttribute{
+					Nesting: tfschema.NestingMap,
+					Content: tfschema.BlockType{
+						Attributes: map[string]*tfschema.Attribute{
 							"statement": {Type: cty.String, Optional: true},
 
 							"expect": {Type: cty.Bool, Required: true},
@@ -47,9 +48,9 @@ func assertionsDataResourceType() tfsdk.DataResourceType {
 					},
 				},
 				"equal": {
-					Nesting: tfsdk.SchemaNestingMap,
-					Content: tfsdk.SchemaBlockType{
-						Attributes: map[string]*tfsdk.SchemaAttribute{
+					Nesting: tfschema.NestingMap,
+					Content: tfschema.BlockType{
+						Attributes: map[string]*tfschema.Attribute{
 							"statement": {Type: cty.String, Optional: true},
 
 							"want": {Type: cty.DynamicPseudoType, Required: true},
