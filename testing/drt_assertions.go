@@ -148,7 +148,11 @@ func assertionsDataResourceType() tfsdk.DataResourceType {
 						formatValue(eq.Got, 2),
 					)
 				} else {
-					msg = fmt.Sprintf("Assertion failed.\n  Want: %s\n  Got:  %s", eq.Want, eq.Got)
+					msg = fmt.Sprintf(
+						"Assertion failed.\n  Want: %s\n  Got:  %s",
+						formatValue(eq.Want, 2),
+						formatValue(eq.Got, 2),
+					)
 				}
 
 				diags = diags.Append(tfsdk.Diagnostic{
