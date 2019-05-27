@@ -20,7 +20,23 @@ func formatValue(v cty.Value, indent int) string {
 		return "(unknown)"
 	}
 	if v.IsNull() {
-		return "null"
+		ty := v.Type()
+		switch {
+		case ty == cty.String:
+			return "tostring(null)"
+		case ty == cty.Number:
+			return "tonumber(null)"
+		case ty == cty.Bool:
+			return "tobool(null)"
+		case ty.IsListType():
+			return fmt.Sprintf("tolist(null) /* of %s */", ty.ElementType().FriendlyName())
+		case ty.IsSetType():
+			return fmt.Sprintf("toset(null) /* of %s */", ty.ElementType().FriendlyName())
+		case ty.IsMapType():
+			return fmt.Sprintf("tomap(null) /* of %s */", ty.ElementType().FriendlyName())
+		default:
+			return fmt.Sprintf("null /* %s */", ty.FriendlyName())
+		}
 	}
 
 	ty := v.Type()
