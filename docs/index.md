@@ -136,13 +136,6 @@ provider.
 
 For more information, see the documentation for the `testing_tap` data source.
 
-To support this, the provider also offers a `testing_tap` data source which
-runs an external program and interprets its output as the line-oriented
-[Test Anything Protocol](https://testanything.org/). This protocol is easy
-to generate from any language that can write to stdout -- including shell scripts!
--- and provides a lightweight interface between the test program and this
-provider.
-
 ```hcl
 module "tap_hello" {
   source = "../"
